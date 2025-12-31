@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>PUFFER SLOTS</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@900&display=swap');
+        body { background: #050505; color: white; font-family: 'Outfit', sans-serif; }
+        .slot-container { background: linear-gradient(180deg, #1a1a1a 0%, #000 100%); border: 4px solid #a855f7; box-shadow: 0 0 50px rgba(168, 85, 247, 0.4); }
+        .reel { height: 120px; width: 100px; background: #111; border-radius: 15px; display: flex; align-items: center; justify-center: center; font-size: 3rem; overflow: hidden; position: relative; border: 1px solid rgba(255,255,255,0.1); }
+        .spinning { animation: blur 0.1s infinite linear; }
+        @keyframes blur { 0% { filter: blur(0px); transform: translateY(-10px); } 50% { filter: blur(4px); } 100% { filter: blur(0px); transform: translateY(10px); } }
+        .win-flash { animation: flash 0.5s infinite; }
+        @keyframes flash { 0% { opacity: 1; } 50% { opacity: 0.5; box-shadow: 0 0 40px gold; } 100% { opacity: 1; } }
+    </style>
+</head>
+<body class="h-screen flex flex-col items-center justify-center">
+
+    <div class="mb-8 text-center">
+        <h1 class="text-5xl font-black neon-purple italic tracking-tighter uppercase mb-2">Puffer Slots</h1>
+        <div class="bg-black/50 px-6 py-2 rounded-full border border-purple-500/50 inline-block">
+            <span id="balance" class="text-xl font-bold text-yellow-500">1000</span> <span class="text-xs">PTS</span>
+        </div>
+    </div>
+
+    <div class="slot-container p-8 rounded-[40px] flex space-x-4 mb-10">
+        <div id="reel1" class="reel">💎</div>
+        <div id="reel2" class="reel">💎</div>
+        <div id="reel3" class="reel">💎</div>
+    </div>
+
+    <div class="w-80 space-y-4 text-center">
+        <div class="flex justify-between items-center bg-white/5 p-4 rounded-2xl border border-white/10">
+            <button onclick="changeBet(-10)" class="text-purple-500"><i class="fa-solid fa-minus"></i></button>
+            <span id="current-bet" class="font-black text-2xl">50</span>
+            <button onclick="changeBet(10)" class="text-purple-500"><i class="fa-solid fa-plus"></i></button>
+        </div>
+        <button id="spin-btn" onclick="spin()" class="w-full bg-purple-600 hover:bg-purple-500 py-6 rounded-3xl font-black text-xl uppercase tracking-widest transition-all">SPIN</button>
+    </div>
+
+    <script src="db.js"></script>
+    <script>
+        const symbols = ['💎', '🍋', '🍒', '🔔', '7️⃣', '🎰'];
+        let balance = 1000;
+        let currentBet = 50;
+        let spinning = false;
+
+        async function spin() {
+            if (spinning || balance < currentBet) return;
+            
+            spinning = true;
+            balance -= currentBet;
+            updateUI();
+
+            const reels = [document.getElementById('reel1'), document.getElementById('reel2'), document.getElementById('reel3')];
+            reels.forEach(r => r.classList.add('spinning'));
+
+            // Simulation der Walzen
+            setTimeout(async () => {
+                reels.forEach(r => r.classList.remove('spinning'));
+                const results = reels.map(r => {
+                    const res = symbols[Math.floor(Math.random() * symbols.length)];
+                    r.innerText = res;
+                    return res;
+                });
+
+                // Win Logic
+                if (results[0] === results[1] && results[1] === results[2]) {
+                    const win = currentBet * 10;
+                    balance += win;
+                    alert("JACKPOT! +" + win);
+                    reels.forEach(r => r.classList.add('win-flash'));
+                    setTimeout(() => reels.forEach(r => r.classList.remove('win-flash')), 2000);
+                }
+
+                spinning = false;
+                // Hier in db.js speichern
+                // await updateBalance(user.id, balance);
+                updateUI();
+            }, 1000);
+        }
+
+        function changeBet(val) {
+            if (spinning) return;
+            currentBet = Math.max(10, currentBet + val);
+            document.getElementById('current-bet').innerText = currentBet;
+        }
+
+        function updateUI() {
+            document.getElementById('balance').innerText = balance;
+        }
+    </script>
+</body>
+</html>
