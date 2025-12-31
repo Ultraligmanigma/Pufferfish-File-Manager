@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PUFFERFISH // VAULT</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;700;900&display=swap');
+        body { background: #050507; color: #fff; font-family: 'Outfit', sans-serif; overflow: hidden; }
+        .glass { background: rgba(255, 255, 255, 0.02); backdrop-filter: blur(15px); border: 1px solid rgba(255,255,255,0.05); }
+        .neon-border { border: 1px solid rgba(0, 242, 255, 0.3); box-shadow: 0 0 20px rgba(0, 242, 255, 0.1); }
+        .active-tab { background: rgba(0, 242, 255, 0.1); color: #00f2ff; border: 1px solid rgba(0, 242, 255, 0.2); }
+        .file-card:hover { transform: translateY(-5px); border-color: #00f2ff; }
+    </style>
+</head>
+<body class="flex h-screen">
+
+    <aside class="w-72 bg-black/40 border-r border-white/5 flex flex-col p-6">
+        <div class="flex items-center space-x-3 mb-12">
+            <div class="w-12 h-12 bg-cyan-500 rounded-2xl flex items-center justify-center shadow-lg shadow-cyan-500/50">
+                <i class="fa-solid fa-fish-fins text-black text-xl"></i>
+            </div>
+            <span class="text-2xl font-black tracking-tighter uppercase italic">Vault</span>
+        </div>
+
+        <nav class="space-y-2 flex-1">
+            <button onclick="setView('private')" id="btn-private" class="w-full p-4 rounded-2xl flex items-center space-x-4 active-tab transition">
+                <i class="fa-solid fa-user-shield"></i>
+                <span class="font-bold">MY_SAFE</span>
+            </button>
+            <button onclick="setView('public')" id="btn-public" class="w-full p-4 rounded-2xl flex items-center space-x-4 hover:bg-white/5 transition text-gray-500">
+                <i class="fa-solid fa-globe"></i>
+                <span class="font-bold">PUBLIC_HUB</span>
+            </button>
+        </nav>
+
+        <div class="p-6 glass rounded-[32px] border border-white/5">
+            <div class="flex justify-between text-[10px] font-black mb-2 opacity-50 uppercase">Cloud_Usage</div>
+            <div class="w-full h-1.5 bg-black rounded-full mb-2">
+                <div id="storage-bar" class="h-full bg-cyan-500 rounded-full transition-all duration-700" style="width: 0%"></div>
+            </div>
+            <p class="text-[9px] text-gray-400 font-bold" id="storage-text">0 GB / 10 GB</p>
+        </div>
+    </aside>
+
+    <main class="flex-1 flex flex-col bg-[#08080a]">
+        <header class="h-24 flex items-center px-12 justify-between border-b border-white/5">
+            <div>
+                <h2 class="text-xs font-black text-cyan-500 uppercase tracking-[0.3em]" id="view-subtitle">Access_Granted</h2>
+                <h1 class="text-3xl font-black uppercase" id="view-title">My Safe</h1>
+            </div>
+            <div class="flex items-center space-x-4">
+                <button onclick="document.getElementById('upload-input').click()" class="neon-border bg-cyan-500/10 text-cyan-400 font-black px-8 py-3 rounded-2xl hover:bg-cyan-500 hover:text-black transition-all">
+                    UPLOAD_FILE
+                </button>
+                <input type="file" id="upload-input" class="hidden" onchange="uploadFile(this.files[0])">
+            </div>
+        </header>
+
+        <div class="flex-1 p-12 overflow-y-auto">
+            <div id="file-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                </div>
+        </div>
+    </main>
+
+    <script src="db.js"></script>
+    <script>
+        let currentView = 'private';
+        let user = null;
+
+        // AUTH & INIT
+        async function init() {
+            const { data } = await supabase.auth.getUser();
+            user = data.user;
+            if (!user) { 
+                console.log("No User found - Login required");
+                // Hier könnte eine Weiterleitung zum Login stehen
+            }
+            updateStorageUI();
+            loadFiles();
+        }
+
+        async function updateStorageUI() {
+            const { data } = await supabase.from('profiles').select('*').eq('id', user?.id).single();
+            if (data) {
+                const usedGB = (data.used_storage / (1024**3)).toFixed(2);
+                const percent = (data.used_storage / (10 * 1024**3) * 100).toFixed(1);
+                document.getElementById('storage-text').innerText = `${usedGB} GB / 10 GB`;
+                document.getElementById('storage-bar').style.width = `${percent}%`;
+            }
+        }
+
+        async function loadFiles() {
+            const grid = document.getElementById('file-grid');
+            grid.innerHTML = '<div class="text-cyan-500/50 text-xs font-bold uppercase animate-pulse">Scanning_Encrypted_Sectors...</div>';
+
+            let query = supabase.from('vault_files').select('*');
+            query = (currentView === 'private') ? query.eq('owner_id', user?.id) : query.eq('is_public', true);
+
+            const { data } = await query.order('created_at', { ascending: false });
+            grid.innerHTML = '';
+
+            data?.forEach(file => {
+                const card = document.createElement('div');
+                card.className = "glass p-6 rounded-[30px] file-card border border-white/5 transition-all group";
+                card.innerHTML = `
+                    <div class="w-full h-32 bg-black/40 rounded-2xl mb-4 flex items-center justify-center border border-white/5">
+                        <i class="fa-solid fa-file-invoice text-3xl opacity-20 group-hover:opacity-100 group-hover:text-cyan-400 transition"></i>
+                    </div>
+                    <h3 class="font-bold text-sm truncate uppercase tracking-tighter">${file.name}</h3>
+                    <div class="flex justify-between items-center mt-6">
+                        <span class="text-[9px] text-gray-500 font-bold">${(file.size / 1024 / 1024).toFixed(2)} MB</span>
+                        <div class="flex space-x-3">
+                             <a href="${file.url}" target="_blank" class="text-cyan-500 hover:scale-120 transition"><i class="fa-solid fa-download"></i></a>
+                             ${currentView === 'private' ? `<button onclick="togglePublic('${file.id}', ${file.is_public})" class="${file.is_public ? 'text-green-500' : 'text-gray-700'} hover:text-white transition"><i class="fa-solid fa-share-nodes"></i></button>` : ''}
+                        </div>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        async function uploadFile(file) {
+            if (!file || !user) return;
+            const fileName = `${user.id}/${Date.now()}_${file.name}`;
+            
+            const { data: uploadData, error } = await supabase.storage.from('vault').upload(fileName, file);
+            if (error) return alert("Upload failed: " + error.message);
+
+            const { data: urlData } = supabase.storage.from('vault').getPublicUrl(fileName);
+
+            await supabase.from('vault_files').insert([{
+                owner_id: user.id,
+                name: file.name,
+                size: file.size,
+                type: file.type,
+                url: urlData.publicUrl,
+                is_public: false
+            }]);
+
+            // Update Profile Storage
+            const { data: profile } = await supabase.from('profiles').select('used_storage').eq('id', user.id).single();
+            await supabase.from('profiles').update({ used_storage: (profile?.used_storage || 0) + file.size }).eq('id', user.id);
+
+            updateStorageUI();
+            loadFiles();
+        }
+
+        async function togglePublic(id, state) {
+            await supabase.from('vault_files').update({ is_public: !state }).eq('id', id);
+            loadFiles();
+        }
+
+        function setView(view) {
+            currentView = view;
+            document.getElementById('view-title').innerText = view === 'private' ? 'My Safe' : 'Public Hub';
+            document.getElementById('btn-private').className = view === 'private' ? 'w-full p-4 rounded-2xl flex items-center space-x-4 active-tab transition' : 'w-full p-4 rounded-2xl flex items-center space-x-4 hover:bg-white/5 transition text-gray-500';
+            document.getElementById('btn-public').className = view === 'public' ? 'w-full p-4 rounded-2xl flex items-center space-x-4 active-tab transition' : 'w-full p-4 rounded-2xl flex items-center space-x-4 hover:bg-white/5 transition text-gray-500';
+            loadFiles();
+        }
+
+        init();
+    </script>
+</body>
+</html>
