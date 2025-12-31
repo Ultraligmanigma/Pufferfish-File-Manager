@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8"><title>Vault | Login</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>body { background: #050507; font-family: 'Outfit', sans-serif; }</style>
+</head>
+<body class="h-screen flex items-center justify-center">
+    <div class="bg-white/5 p-10 rounded-[40px] border border-white/10 w-96 text-center">
+        <i class="fa-solid fa-fish-fins text-5xl text-cyan-500 mb-6"></i>
+        <h1 class="text-white text-2xl font-black mb-6 uppercase tracking-widest">Puffer_Vault</h1>
+        <div class="space-y-4">
+            <input id="email" type="email" placeholder="E-Mail" class="w-full bg-black/40 border border-white/10 p-4 rounded-2xl text-white outline-none focus:border-cyan-500 transition">
+            <input id="password" type="password" placeholder="Passwort" class="w-full bg-black/40 border border-white/10 p-4 rounded-2xl text-white outline-none focus:border-cyan-500 transition">
+            <button onclick="signIn()" class="w-full bg-cyan-500 text-black font-black py-4 rounded-2xl hover:bg-cyan-400 transition">LOGIN</button>
+            <a href="register.html" class="block text-xs text-gray-500 hover:text-white mt-4">Neu hier? Registrieren</a>
+        </div>
+    </div>
+    <script src="db.js"></script>
+    <script>
+        async function signIn() {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const { error } = await supabase.auth.signInWithPassword({ email, password });
+            if (error) alert(error.message);
+            else window.location.href = 'index.html';
+        }
+        checkAuth(false); // Wenn schon eingeloggt, direkt zu index.html
+    </script>
+</body>
+</html>
