@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8"><title>Vault | Join</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>body { background: #050507; font-family: 'Outfit', sans-serif; }</style>
+</head>
+<body class="h-screen flex items-center justify-center">
+    <div class="bg-white/5 p-10 rounded-[40px] border border-white/10 w-96 text-center">
+        <i class="fa-solid fa-user-plus text-4xl text-cyan-500 mb-6"></i>
+        <h1 class="text-white text-2xl font-black mb-6 uppercase">Registrieren</h1>
+        <div class="space-y-4">
+            <input id="email" type="email" placeholder="E-Mail" class="w-full bg-black/40 border border-white/10 p-4 rounded-2xl text-white outline-none focus:border-cyan-500">
+            <input id="password" type="password" placeholder="Passwort (min. 6 Zeichen)" class="w-full bg-black/40 border border-white/10 p-4 rounded-2xl text-white outline-none focus:border-cyan-500">
+            <button onclick="signUp()" class="w-full bg-cyan-500 text-black font-black py-4 rounded-2xl hover:bg-cyan-400 transition">ACCOUNT ERSTELLEN</button>
+            <a href="login.html" class="block text-xs text-gray-500 hover:text-white mt-4">Zurück zum Login</a>
+        </div>
+    </div>
+    <script src="db.js"></script>
+    <script>
+        async function signUp() {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const { error } = await supabase.auth.signUp({ email, password });
+            if (error) alert(error.message);
+            else alert("Erfolg! Schau in deine Mails (oder log dich direkt ein, wenn Confirm Email aus ist).");
+        }
+    </script>
+</body>
+</html>
